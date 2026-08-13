@@ -453,6 +453,22 @@
 </style>
 </head>
 <body>
+<div class="drona-modal-overlay" id="droneOverlay" hidden>
+  <div class="drona-modal" role="dialog" aria-modal="true" aria-labelledby="droneModalTitle">
+    <button type="button" class="drona-modal-close" id="droneModalClose" aria-label="Close">&times;</button>
+    <div class="drona-eyebrow" style="margin-bottom:10px;">Before you download</div>
+    <h3 id="droneModalTitle" class="drona-modal-title">A few details, then the full report is yours.</h3>
+    <form id="droneForm" novalidate>
+      <label class="drona-field"><span>Name</span><input type="text" name="name" required></label>
+      <label class="drona-field"><span>School</span><input type="text" name="school" required></label>
+      <label class="drona-field"><span>Email</span><input type="email" name="email"></label>
+      <label class="drona-field"><span>Phone</span><input type="tel" name="phone"></label>
+      <p class="drona-field-hint">Provide at least one of email or phone — we'll send the report there.</p>
+      <button type="submit" class="drona-modal-submit" id="droneSubmitBtn">Get the report</button>
+      <p class="drona-modal-status" id="droneStatus"></p>
+    </form>
+  </div>
+</div>
 <nav class="drona-nav">
   <div class="drona-nav-inner">
     <img src="dronafy-mark.png" alt="Dronafy" style="width:26px;height:26px;flex-shrink:0;display:block;">
@@ -677,8 +693,8 @@ setSubjectView();
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function REPORT_TEMPLATE(o){
-  const statTiles = o.stats.map(s => `<div class="pg-stat ${s.cls}"><div class="n">${s.n}</div><div class="l">${escapeHtml(s.l)}</div></div>`).join('');
-  const legendRows = o.legendItems.map(li => `<div class="pg-legend-item"><span class="pg-legend-dot ${li.cls}"></span><span><strong>${escapeHtml(li.label)}</strong> — ${escapeHtml(li.text)}</span></div>`).join('');
+  const statTiles = (o.stats || []).map(s => `<div class="pg-stat ${s.cls}"><div class="n">${s.n}</div><div class="l">${escapeHtml(s.l)}</div></div>`).join('');
+  const legendRows = (o.legendItems || []).map(li => `<div class="pg-legend-item"><span class="pg-legend-dot ${li.cls}"></span><span><strong>${escapeHtml(li.label)}</strong> — ${escapeHtml(li.text)}</span></div>`).join('');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -764,6 +780,46 @@ function REPORT_TEMPLATE(o){
   .pg-band-fill.strong{background:#2F5D45;} .pg-band-fill.competent{background:#5C8F71;} .pg-band-fill.developing{background:var(--pg-amber);} .pg-band-fill.emerging{background:var(--pg-red);}
   .pg-band-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--pg-light-slate);text-align:right;}
 
+  .pg-traj-svg-wrap{margin-bottom:6px;}
+  .pg-svg-label{font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--pg-light-slate);letter-spacing:.04em;}
+
+  .pg-toggle-row{display:flex;align-items:center;gap:10px;margin:2px 0 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pg-light-slate);}
+  .pg-toggle{display:inline-flex;border:1px solid var(--pg-light-rule);border-radius:20px;overflow:hidden;}
+  .pg-toggle span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:6px 14px;color:var(--pg-light-slate);}
+  .pg-toggle span.active{background:var(--pg-light-ink);color:#fff;}
+
+  .pg-hl-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  .pg-hl-box{border-radius:10px;padding:14px 16px;}
+  .pg-hl-box.good{background:rgba(95,164,124,.14);}
+  .pg-hl-box.bad{background:rgba(192,114,106,.14);}
+  .pg-hl-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+  .pg-hl-box.good .pg-hl-tag{color:#3E8A5E;}
+  .pg-hl-box.bad .pg-hl-tag{color:var(--pg-red);}
+  .pg-hl-name{font-family:'IBM Plex Serif',serif;font-weight:600;font-size:16px;color:var(--pg-light-ink);}
+
+  .pg-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:2px;}
+  .pg-chip-pill{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pg-light-slate);background:#FBFBF8;border:1px solid var(--pg-light-rule);border-radius:20px;padding:4px 12px;}
+
+  .pg-month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px dashed var(--pg-line);font-size:12.5px;color:var(--pg-text-dim);}
+  .pg-month-row:first-child{border-top:none;}
+  .pg-month-grade{color:var(--pg-text);}
+  .pg-month-val{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .pg-month-val strong{color:var(--pg-text);}
+  .pg-month-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .pg-month-dot.strong{background:var(--pg-green);} .pg-month-dot.competent{background:var(--pg-slate);} .pg-month-dot.developing{background:var(--pg-amber);} .pg-month-dot.emerging{background:var(--pg-red);}
+
+  .pg-move-card{background:var(--pg-card);border-radius:12px;padding:22px 24px;margin-bottom:16px;}
+  .pg-move-card h4{font-family:'IBM Plex Serif',serif;font-weight:600;font-size:17px;margin:0 0 16px;color:#fff;}
+  .pg-move-pair{display:flex;gap:40px;margin-bottom:14px;flex-wrap:wrap;}
+  .pg-move-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+  .pg-move-col.good .pg-move-tag{color:var(--pg-green);}
+  .pg-move-col.bad .pg-move-tag{color:var(--pg-red);}
+  .pg-move-name{font-family:'IBM Plex Serif',serif;font-weight:600;font-size:17px;color:var(--pg-text);}
+  .pg-move-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .pg-move-chip{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pg-text-dim);background:rgba(255,255,255,.06);border-radius:20px;padding:4px 12px;}
+  .pg-move-desc{font-size:12.5px;line-height:1.65;color:var(--pg-text-dim);border-top:1px dashed var(--pg-line);padding-top:14px;margin:0;}
+  .pg-page3-close{border-top:1px solid var(--pg-line);margin-top:28px;padding-top:22px;text-align:center;font-size:12px;color:var(--pg-text-dim);line-height:1.7;max-width:640px;margin-left:auto;margin-right:auto;}
+
   .pg-legend-box{background:var(--pg-card);border-radius:10px;padding:20px 24px;}
   .pg-legend-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--pg-text-dim);text-transform:uppercase;margin-bottom:14px;}
   .pg-legend-item{display:flex;gap:10px;font-size:12.5px;line-height:1.6;color:var(--pg-text-dim);margin-bottom:10px;}
@@ -824,15 +880,15 @@ function REPORT_TEMPLATE(o){
   </div>
   <div class="pg-screenshot-caption">${escapeHtml(o.screenshotCaption)}</div>
 
-  <div class="pg-stats">${statTiles}</div>
+  ${o.stats ? `<div class="pg-stats">${statTiles}</div>` : ''}
 
-  <div class="pg-legend-box">
+  ${o.legendItems ? `<div class="pg-legend-box">
     <div class="pg-legend-title">How to read this report</div>
     ${legendRows}
-  </div>
+  </div>` : ''}
 </div>
 
-<div class="pg-page pg-page2">
+${o.flaggedTitle ? `<div class="pg-page pg-page2">
   <div class="pg-header">
     <div class="pg-header-left">
       <div class="pg-eyebrow">Dronalytics · School Pretotype</div>
@@ -843,16 +899,16 @@ function REPORT_TEMPLATE(o){
     </div>
   </div>
 
-  <h2 class="pg-h2" style="font-size:22px;">${escapeHtml(o.flaggedTitle)}</h2>
+  <h2 class="pg-h2" style="font-size:22px;">${o.flaggedTitle}</h2>
   <p class="pg-sub">${escapeHtml(o.flaggedSub)}</p>
 
   ${o.flaggedCardsHtml}
 
-  <div class="pg-closing">
-    <p>${escapeHtml(o.closingQuote)}</p>
-  </div>
-  <div class="pg-footer">${escapeHtml(o.footerText)}</div>
-</div>
+  ${o.closingQuote ? `<div class="pg-closing"><p>${escapeHtml(o.closingQuote)}</p></div>` : ''}
+  ${!o.additionalPagesHtml ? `<div class="pg-footer">${escapeHtml(o.footerText)}</div>` : ''}
+</div>` : ''}
+
+${o.additionalPagesHtml || ''}
 </body>
 </html>`;
 }
@@ -861,66 +917,141 @@ const bandNameToCls = {"Excelling":"strong", "On Track":"competent", "Improving"
 const subjectView = {good:"English", bad:"Science", chips:["↑ Math","→ Social Studies"], takeaway:"The school has gone from Improving to On Track since November — led by English, while Science is the one area pulling the other way."};
 const gradeView = {good:"Grade 11–12", bad:"Grade 9–10", chips:["↑ Grade 6–8"], takeaway:"Grade 11–12 is pulling the school average up; Grade 9–10 has genuinely dipped, not just slowed — worth a closer look."};
 
-function screenshotMonthsHtml(){
-  return trajData.map(d => {
-    const cls = bandNameToCls[d.band] || 'competent';
-    const avgPct = Math.round(d.rows.reduce((a,r) => a + r.pct, 0) / d.rows.length);
-    return `<div class="pg-band-row">
-      <span class="pg-band-label">${escapeHtml(d.month.split(' ')[0])}</span>
-      <div class="pg-band-track"><div class="pg-band-fill ${cls}" style="width:${avgPct}%;"></div></div>
-      <span class="pg-band-val">${escapeHtml(d.band)}</span>
-    </div>`;
+function screenshotChartHtml(){
+  return `<div class="pg-traj-svg-wrap">
+<svg viewBox="0 0 800 300" style="width:100%;height:auto;display:block;">
+  <rect x="40" y="20" width="740" height="65" fill="#DCE9DE"/>
+  <text x="50" y="38" class="pg-svg-label">EXCELLING</text>
+  <rect x="40" y="85" width="740" height="65" fill="#E7EEE0"/>
+  <text x="50" y="103" class="pg-svg-label">ON TRACK</text>
+  <rect x="40" y="150" width="740" height="65" fill="#F3E9D2"/>
+  <text x="50" y="168" class="pg-svg-label">IMPROVING</text>
+  <rect x="40" y="215" width="740" height="65" fill="#F3DFD8"/>
+  <text x="50" y="233" class="pg-svg-label">NEEDS SUPPORT</text>
+  <defs>
+    <linearGradient id="pgAreaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2F5D45" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#2F5D45" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <path d="M80,195 C150,190 190,182 250,180 C320,177 360,170 420,165 C480,160 530,150 590,140 C650,130 710,118 760,105 L760,280 L80,280 Z" fill="url(#pgAreaGrad)"/>
+  <path d="M80,195 C150,190 190,182 250,180 C320,177 360,170 420,165 C480,160 530,150 590,140 C650,130 710,118 760,105" fill="none" stroke="#2F5D45" stroke-width="2.5"/>
+  <circle cx="80" cy="195" r="6" fill="#2F5D45" stroke="#FBFBF8" stroke-width="2"/>
+  <circle cx="250" cy="180" r="6" fill="#2F5D45" stroke="#FBFBF8" stroke-width="2"/>
+  <circle cx="420" cy="165" r="6" fill="#2F5D45" stroke="#FBFBF8" stroke-width="2"/>
+  <circle cx="590" cy="140" r="6" fill="#2F5D45" stroke="#FBFBF8" stroke-width="2"/>
+  <circle cx="760" cy="105" r="6" fill="#2F5D45" stroke="#FBFBF8" stroke-width="2"/>
+  <text x="80" y="296" text-anchor="middle" class="pg-svg-label">Nov</text>
+  <text x="250" y="296" text-anchor="middle" class="pg-svg-label">Dec</text>
+  <text x="420" y="296" text-anchor="middle" class="pg-svg-label">Jan</text>
+  <text x="590" y="296" text-anchor="middle" class="pg-svg-label">Feb</text>
+  <text x="760" y="296" text-anchor="middle" class="pg-svg-label">Mar</text>
+</svg>
+</div>`;
+}
+
+function screenshotBreakdownHtml(monthData){
+  const rows = monthData.rows.map(r => {
+    const cls = bandNameToCls[r.band] || 'competent';
+    return `<div class="pg-band-row"><span class="pg-band-label">${escapeHtml(r.grade)}</span><span class="pg-band-track"><span class="pg-band-fill ${cls}" style="width:${r.pct}%"></span></span><span class="pg-band-val">${escapeHtml(r.band)}</span></div>`;
   }).join('');
+  return `
+    <div style="border-top:1px solid var(--pg-light-rule);margin:18px 0 16px;padding-top:16px;">
+      <div class="pg-shot-context" style="margin-bottom:12px;">Grade-band breakdown — click a month to change this</div>
+      ${rows}
+    </div>
+    <div class="pg-toggle-row">Since last month, movement by
+      <span class="pg-toggle"><span class="active">Subject</span><span>Grade</span></span>
+    </div>
+    <div class="pg-hl-pair">
+      <div class="pg-hl-box good"><div class="pg-hl-tag">Most Effective</div><div class="pg-hl-name">${escapeHtml(subjectView.good)}</div></div>
+      <div class="pg-hl-box bad"><div class="pg-hl-tag">Needs Attention</div><div class="pg-hl-name">${escapeHtml(subjectView.bad)}</div></div>
+    </div>
+    <div class="pg-chip-row">${subjectView.chips.map(c => `<span class="pg-chip-pill">${escapeHtml(c)}</span>`).join('')}</div>
+    <p class="pg-shot-takeaway">${escapeHtml(subjectView.takeaway)}</p>
+    <div class="pg-shot-fakebtn">⬇ Download Report</div>
+  `;
 }
 
 function monthFlagCard(d){
   const cls = bandNameToCls[d.band] || 'competent';
-  const rowsText = d.rows.map(r => `${escapeHtml(r.grade)}: ${escapeHtml(r.band)} (${r.pct}%)`).join(', ');
+  const rows = d.rows.map(r => {
+    const rcls = bandNameToCls[r.band] || 'competent';
+    return `<div class="pg-month-row"><span class="pg-month-grade">${escapeHtml(r.grade)}</span><span class="pg-month-val"><span class="pg-month-dot ${rcls}"></span>${escapeHtml(r.band)} · <strong>${r.pct}%</strong></span></div>`;
+  }).join('');
+  const badgeCls = cls === 'strong' ? 'green' : cls === 'competent' ? 'slate' : cls === 'developing' ? 'amber' : 'red';
   return `
     <article class="pg-flag-card">
       <div class="pg-flag-head">
-        <span class="pg-badge ${cls === 'strong' ? 'green' : cls === 'competent' ? 'green' : cls === 'developing' ? 'amber' : 'red'}">${escapeHtml(d.band)}</span>
-        <span class="pg-flag-context">${escapeHtml(d.month)}</span>
+        <span class="pg-flag-context" style="font-family:'IBM Plex Serif',serif;font-weight:600;font-size:16px;color:var(--pg-text);">${escapeHtml(d.month.replace(/ \d{4}$/, ''))}</span>
+        <span class="pg-badge ${badgeCls}">${escapeHtml(d.band)}</span>
       </div>
       <p class="pg-flag-headline">${escapeHtml(bandMeanings[cls])}</p>
-      <p class="pg-flag-step"><strong>Grade-band mix:</strong> ${rowsText}</p>
+      ${rows}
     </article>`;
+}
+
+function buildMovementPage(){
+  const subjectCard = `<div class="pg-move-card">
+    <h4>Movement by subject</h4>
+    <div class="pg-move-pair">
+      <div class="pg-move-col good"><div class="pg-move-tag">Most effective</div><div class="pg-move-name">${escapeHtml(subjectView.good)}</div></div>
+      <div class="pg-move-col bad"><div class="pg-move-tag">Needs attention</div><div class="pg-move-name">${escapeHtml(subjectView.bad)}</div></div>
+    </div>
+    <div class="pg-move-chips">${subjectView.chips.map(c => `<span class="pg-move-chip">${escapeHtml(c)}</span>`).join('')}</div>
+    <p class="pg-move-desc">${escapeHtml(subjectView.takeaway)}</p>
+  </div>`;
+  const gradeCard = `<div class="pg-move-card">
+    <h4>Movement by grade</h4>
+    <div class="pg-move-pair">
+      <div class="pg-move-col good"><div class="pg-move-tag">Most effective</div><div class="pg-move-name">${escapeHtml(gradeView.good)}</div></div>
+      <div class="pg-move-col bad"><div class="pg-move-tag">Needs attention</div><div class="pg-move-name">${escapeHtml(gradeView.bad)}</div></div>
+    </div>
+    <div class="pg-move-chips">${gradeView.chips.map(c => `<span class="pg-move-chip">${escapeHtml(c)}</span>`).join('')}</div>
+    <p class="pg-move-desc">Grade 11–12 is pulling the school average up. Grade 9–10 has genuinely dipped, not just slowed — worth a closer look.</p>
+  </div>`;
+  return `<div class="pg-page pg-page2">
+    <div class="pg-header">
+      <div class="pg-header-left">
+        <div class="pg-eyebrow">Dronalytics · School Pretotype</div>
+        <h1>Position Report — March 2026</h1>
+      </div>
+      <div class="pg-header-right"><img class="pg-logo" src="dronafy-mark.png" alt=""></div>
+    </div>
+    <h2 class="pg-h2" style="font-size:22px;">Where the movement is coming from</h2>
+    <p class="pg-sub">The same trend, split two ways — by subject and by grade — so it's clear which groups are driving the change and which need attention.</p>
+    ${subjectCard}
+    ${gradeCard}
+    <div class="pg-page3-close">This report was built from the same data shown on the dashboard — the chart, the grade-band breakdown, and the subject/grade view all trace back to the same five months.</div>
+  </div>`;
 }
 
 function buildBrochureHtml(){
   const first = trajData[0], last = trajData[trajData.length - 1];
   const lastCls = bandNameToCls[last.band] || 'competent';
+  const firstMonthShort = first.month.replace(/ \d{4}$/, '');
+  const lastMonthShort = last.month.replace(/ \d{4}$/, '');
+  const lastMeaning = bandMeanings[lastCls];
+  const lastMeaningLower = lastMeaning.charAt(0).toLowerCase() + lastMeaning.slice(1);
 
   return REPORT_TEMPLATE({
-    reportName: "Monthly Position Report",
-    eyebrowTag: "Money · Position",
-    badgeText: `Currently: ${last.band}`,
+    reportName: "Position Report",
+    badgeText: `${escapeHtml(first.band)} → ${escapeHtml(last.band)}`,
     summaryEyebrow: "For the principal — plain-language summary",
-    headline: `A benchmark tells you where you stand — <em>a trajectory tells you if you're getting there.</em>`,
-    subhead: "This view exists to answer one question every month: are we improving, where, and where are we slipping? A static score has limited recurring value; movement does.",
-    calloutHtml: `Between <strong>${escapeHtml(first.month)}</strong> and <strong>${escapeHtml(last.month)}</strong>, the school's overall standing moved from <strong>"${escapeHtml(first.band)}"</strong> to <strong>"${escapeHtml(last.band)}"</strong>. ${escapeHtml(bandMeanings[lastCls])} By subject, <strong>${escapeHtml(subjectView.good)}</strong> is the most effective area and ${escapeHtml(subjectView.bad)} needs the most attention; by grade band, <strong>${escapeHtml(gradeView.good)}</strong> is pulling the average up while ${escapeHtml(gradeView.bad)} is pulling it down.`,
+    headline: `Are we moving in the <em>right direction?</em>`,
+    subhead: "The five-month trend for your school overall, what's behind each month, and which subjects and grades are driving the movement.",
+    calloutHtml: `Between <strong>${escapeHtml(firstMonthShort)}</strong> and <strong>${escapeHtml(lastMonthShort)}</strong>, your school's overall standing moved from <strong>"${escapeHtml(first.band)}"</strong> to <strong>"${escapeHtml(last.band)}"</strong> — ${escapeHtml(lastMeaningLower)} By subject, <strong>${escapeHtml(subjectView.good)} is doing the most to help</strong> and <strong>${escapeHtml(subjectView.bad)} needs the most attention</strong>. By grade, <strong>${escapeHtml(gradeView.good)} are pulling the average up</strong> while <strong>${escapeHtml(gradeView.bad)} are pulling it down</strong>.`,
     screenshotEyebrow: "Money · Position",
-    screenshotTitle: "The school's trajectory, month by month",
-    screenshotSub: "Same five months as the live chart — the bar shows the average grade-band position each month.",
-    screenshotBodyHtml: screenshotMonthsHtml(),
-    screenshotCaption: "This is the actual trajectory your team sees — five months, one band each",
-    stats: [
-      {n: trajData.length, l: "Months tracked", cls: "slate"},
-      {n: last.band, l: "Current standing", cls: "green"},
-      {n: subjectView.good, l: "Most effective", cls: "gold"},
-      {n: subjectView.bad, l: "Needs attention", cls: "red"}
-    ],
-    legendItems: [
-      {cls:"green", label:"Excelling / On Track", text:"consistently strong, or solid and reliable with just a few gaps left to close."},
-      {cls:"amber", label:"Improving", text:"making real progress, but not yet consistent enough to count on."},
-      {cls:"red", label:"Needs Support", text:"early days — needs focused, ground-level support to build up."},
-      {cls:"slate", label:"Grade-band mix", text:"each month's overall band is a blend of three grade bands — the detail behind it is on the next page."}
-    ],
-    flaggedTitle: `The ${trajData.length} months, explained simply`,
-    flaggedSub: "In order, oldest to newest. Each one includes the grade-band mix behind that month's overall standing.",
+    screenshotTitle: "Are we moving in the right direction?",
+    screenshotSub: "The school's overall standing, month by month — no benchmark needed, this is your own history.",
+    screenshotBodyHtml: screenshotChartHtml(),
+    screenshotLegendHtml: screenshotBreakdownHtml(last),
+    screenshotCaption: "This is the actual chart your team sees",
+    flaggedTitle: "Month by month",
+    flaggedSub: "A plain-language read of where your school stood overall each month, plus the three grade bands behind that number.",
     flaggedCardsHtml: trajData.map(monthFlagCard).join(''),
-    closingQuote: subjectView.takeaway,
-    footerText: "Sample data · Greenwood International School · March 2026 — Dronalytics School Pretotype"
+    additionalPagesHtml: buildMovementPage(),
+    footerText: ""
   });
 }
 
@@ -1102,22 +1233,5 @@ droneForm.addEventListener('submit', (e) => {
   });
 });
 </script>
-
-<div class="drona-modal-overlay" id="droneOverlay" hidden>
-  <div class="drona-modal" role="dialog" aria-modal="true" aria-labelledby="droneModalTitle">
-    <button type="button" class="drona-modal-close" id="droneModalClose" aria-label="Close">&times;</button>
-    <div class="drona-eyebrow" style="margin-bottom:10px;">Before you download</div>
-    <h3 id="droneModalTitle" class="drona-modal-title">A few details, then the full report is yours.</h3>
-    <form id="droneForm" novalidate>
-      <label class="drona-field"><span>Name</span><input type="text" name="name" required></label>
-      <label class="drona-field"><span>School</span><input type="text" name="school" required></label>
-      <label class="drona-field"><span>Email</span><input type="email" name="email"></label>
-      <label class="drona-field"><span>Phone</span><input type="tel" name="phone"></label>
-      <p class="drona-field-hint">Provide at least one of email or phone — we'll send the report there.</p>
-      <button type="submit" class="drona-modal-submit" id="droneSubmitBtn">Get the report</button>
-      <p class="drona-modal-status" id="droneStatus"></p>
-    </form>
-  </div>
-</div>
 </body>
 </html>
