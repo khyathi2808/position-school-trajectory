@@ -15,7 +15,8 @@
     person_profiles: 'identified_only',
     capture_pageview: true,
     capture_pageleave: true,
-    autocapture: true
+    autocapture: true,
+    enable_heatmaps: true
   });
   posthog.register({ site: 'Position School Trajectory' });
 </script>
@@ -1191,8 +1192,11 @@ const ANON_ID = getAnonId();
 const PH_SKIP = {page_view: 1, cta_click: 1, cursor_move: 1};
 function phCapture(eventName, extra){
   if(PH_SKIP[eventName] || !window.posthog) return;
-  try { posthog.capture(eventName, Object.assign({anonId: ANON_ID}, extra||{}), {transport: 'sendBeacon'}); } catch(_){}
+  var props = {anonId: ANON_ID};
+  if(extra){ for(var k in extra){ props[k] = extra[k]; } }
+  try { posthog.capture(eventName, props, {transport: 'sendBeacon'}); } catch(_){}
 }
+
 
 function trackEvent(eventName, extra){
   phCapture(eventName, extra);
@@ -1312,13 +1316,13 @@ droneForm.addEventListener('submit', (e) => {
     return;
   }
 
+
   if(window.posthog){
     try {
-      posthog.identify(email, {email, name, school});
-      posthog.capture('report_form_submit', {school, report: REPORT_PDF_FILENAME});
+      posthog.identify(email, {email: email, name: name, school: school});
+      posthog.capture('report_form_submit', {school: school, report: REPORT_PDF_FILENAME});
     } catch(_){}
   }
-
   droneSubmitBtn.disabled = true;
   droneStatus.textContent = 'Preparing your report…';
   droneStatus.className = 'drona-modal-status';
@@ -1405,15 +1409,17 @@ droneSurveyForm.addEventListener('submit', (e) => {
   e.preventDefault();
   if(Object.values(surveyAnswers).filter(Boolean).length < 3) return;
 
+
   if(window.posthog){
     try {
       posthog.capture('report_survey_submit', {
         report: REPORT_PDF_FILENAME,
-        survey_usage: surveyAnswers.q1, survey_focus: surveyAnswers.q2, survey_tracking: surveyAnswers.q3
+        survey_q1: surveyQuestions.q1, survey_a1: surveyAnswers.q1,
+        survey_q2: surveyQuestions.q2, survey_a2: surveyAnswers.q2,
+        survey_q3: surveyQuestions.q3, survey_a3: surveyAnswers.q3
       });
     } catch(_){}
   }
-
   droneSurveySubmitBtn.disabled = true;
   droneSurveyStatus.textContent = 'Preparing your report…';
   droneSurveyStatus.className = 'drona-modal-status';
